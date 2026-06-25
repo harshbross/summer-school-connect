@@ -1,0 +1,1209 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Summer School Community Platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication
+  - name: profiles
+    description: Student profiles
+  - name: posts
+    description: Feed posts
+  - name: comments
+    description: Post comments
+  - name: events
+    description: Events
+  - name: dashboard
+    description: Dashboard summaries
+  - name: admin
+    description: Admin operations
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ── Auth ──────────────────────────────────────────────────────────────────
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register with invite code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current session user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Profiles ──────────────────────────────────────────────────────────────
+
+  /profiles:
+    get:
+      operationId: listProfiles
+      tags: [profiles]
+      summary: List all student profiles (directory)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: college
+          in: query
+          schema:
+            type: string
+        - name: year
+          in: query
+          schema:
+            type: string
+        - name: major
+          in: query
+          schema:
+            type: string
+        - name: tag
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Profile"
+
+  /profiles/me:
+    get:
+      operationId: getMyProfile
+      tags: [profiles]
+      summary: Get own profile
+      responses:
+        "200":
+          description: Own profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+
+    patch:
+      operationId: updateMyProfile
+      tags: [profiles]
+      summary: Update own profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+
+  /profiles/onboarding:
+    post:
+      operationId: completeOnboarding
+      tags: [profiles]
+      summary: Complete onboarding (first-time profile setup)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardingInput"
+      responses:
+        "201":
+          description: Profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+
+  /profiles/{id}:
+    get:
+      operationId: getProfile
+      tags: [profiles]
+      summary: Get a student profile by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Posts ─────────────────────────────────────────────────────────────────
+
+  /posts:
+    get:
+      operationId: listPosts
+      tags: [posts]
+      summary: List feed posts
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [announcement, resource, discussion, introduction, poll]
+        - name: hashtag
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+
+    post:
+      operationId: createPost
+      tags: [posts]
+      summary: Create a post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostInput"
+      responses:
+        "201":
+          description: Created post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+  /posts/{id}:
+    get:
+      operationId: getPost
+      tags: [posts]
+      summary: Get a post by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updatePost
+      tags: [posts]
+      summary: Update a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostUpdate"
+      responses:
+        "200":
+          description: Updated post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+    delete:
+      operationId: deletePost
+      tags: [posts]
+      summary: Delete a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /posts/{id}/react:
+    post:
+      operationId: reactToPost
+      tags: [posts]
+      summary: Add or toggle a reaction on a post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReactionInput"
+      responses:
+        "200":
+          description: Updated post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+
+  # ── Comments ──────────────────────────────────────────────────────────────
+
+  /posts/{postId}/comments:
+    get:
+      operationId: listComments
+      tags: [comments]
+      summary: List comments on a post
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+
+    post:
+      operationId: createComment
+      tags: [comments]
+      summary: Add a comment to a post
+      parameters:
+        - name: postId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentInput"
+      responses:
+        "201":
+          description: Created comment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+
+  /comments/{id}:
+    delete:
+      operationId: deleteComment
+      tags: [comments]
+      summary: Delete a comment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── Events ────────────────────────────────────────────────────────────────
+
+  /events:
+    get:
+      operationId: listEvents
+      tags: [events]
+      summary: List events
+      parameters:
+        - name: upcoming
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+
+    post:
+      operationId: createEvent
+      tags: [events]
+      summary: Create an event (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventInput"
+      responses:
+        "201":
+          description: Created event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+  /events/{id}:
+    get:
+      operationId: getEvent
+      tags: [events]
+      summary: Get an event by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateEvent
+      tags: [events]
+      summary: Update an event (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventUpdate"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+    delete:
+      operationId: deleteEvent
+      tags: [events]
+      summary: Delete an event (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /events/{id}/rsvp:
+    post:
+      operationId: rsvpEvent
+      tags: [events]
+      summary: RSVP to an event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RsvpInput"
+      responses:
+        "200":
+          description: RSVP recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+
+  /events/{id}/rsvps:
+    get:
+      operationId: getEventRsvps
+      tags: [events]
+      summary: Get RSVPs for an event (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: RSVP list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rsvp"
+
+  # ── Dashboard (wow endpoints) ──────────────────────────────────────────────
+
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Cohort-wide summary stats
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/activity:
+    get:
+      operationId: getRecentActivity
+      tags: [dashboard]
+      summary: Recent activity feed (posts + events combined, latest first)
+      responses:
+        "200":
+          description: Recent activity items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityItem"
+
+  /dashboard/upcoming-events:
+    get:
+      operationId: getUpcomingEvents
+      tags: [dashboard]
+      summary: Next 3 upcoming events
+      responses:
+        "200":
+          description: Upcoming events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+
+  # ── Admin ─────────────────────────────────────────────────────────────────
+
+  /admin/students:
+    get:
+      operationId: adminListStudents
+      tags: [admin]
+      summary: List all students with status (admin)
+      responses:
+        "200":
+          description: Student list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminStudent"
+
+  /admin/students/{id}/deactivate:
+    patch:
+      operationId: adminDeactivateStudent
+      tags: [admin]
+      summary: Deactivate a student account (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStudent"
+
+  /admin/invite-code:
+    get:
+      operationId: adminGetInviteCode
+      tags: [admin]
+      summary: Get current invite code (admin)
+      responses:
+        "200":
+          description: Invite code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteCode"
+
+    post:
+      operationId: adminRegenerateInviteCode
+      tags: [admin]
+      summary: Regenerate the invite code (admin)
+      responses:
+        "200":
+          description: New invite code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteCode"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    SuccessResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+
+    # ── Auth ────────────────────────────────────────────────────────────────
+
+    RegisterInput:
+      type: object
+      required: [email, password, inviteCode]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        inviteCode:
+          type: string
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+
+    User:
+      type: object
+      required: [id, email, role, onboardingComplete]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        role:
+          type: string
+          enum: [student, admin]
+        onboardingComplete:
+          type: boolean
+
+    # ── Profile ─────────────────────────────────────────────────────────────
+
+    Profile:
+      type: object
+      required: [id, userId, fullName, college, year, major, bio, interestTags, joinedAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        fullName:
+          type: string
+        pronouns:
+          type: ["string", "null"]
+        homeCity:
+          type: ["string", "null"]
+        college:
+          type: string
+        year:
+          type: string
+        major:
+          type: string
+        bio:
+          type: string
+        funFact:
+          type: ["string", "null"]
+        photoUrl:
+          type: ["string", "null"]
+        linkedinUrl:
+          type: ["string", "null"]
+        instagramHandle:
+          type: ["string", "null"]
+        websiteUrl:
+          type: ["string", "null"]
+        interestTags:
+          type: array
+          items:
+            type: string
+        joinedAt:
+          type: string
+
+    OnboardingInput:
+      type: object
+      required: [fullName, college, year, major, bio, interestTags]
+      properties:
+        fullName:
+          type: string
+        pronouns:
+          type: string
+        homeCity:
+          type: string
+        college:
+          type: string
+        year:
+          type: string
+          enum: [freshman, sophomore, junior, senior, grad]
+        major:
+          type: string
+        bio:
+          type: string
+        funFact:
+          type: string
+        photoUrl:
+          type: string
+        linkedinUrl:
+          type: string
+        instagramHandle:
+          type: string
+        websiteUrl:
+          type: string
+        interestTags:
+          type: array
+          items:
+            type: string
+
+    ProfileUpdate:
+      type: object
+      properties:
+        fullName:
+          type: string
+        pronouns:
+          type: string
+        homeCity:
+          type: string
+        college:
+          type: string
+        year:
+          type: string
+        major:
+          type: string
+        bio:
+          type: string
+        funFact:
+          type: string
+        photoUrl:
+          type: string
+        linkedinUrl:
+          type: string
+        instagramHandle:
+          type: string
+        websiteUrl:
+          type: string
+        interestTags:
+          type: array
+          items:
+            type: string
+
+    # ── Posts ───────────────────────────────────────────────────────────────
+
+    Post:
+      type: object
+      required: [id, authorId, authorName, type, content, reactions, commentCount, isPinned, createdAt]
+      properties:
+        id:
+          type: integer
+        authorId:
+          type: integer
+        authorName:
+          type: string
+        authorPhoto:
+          type: ["string", "null"]
+        authorCollege:
+          type: ["string", "null"]
+        type:
+          type: string
+          enum: [announcement, resource, discussion, introduction, poll]
+        content:
+          type: string
+        linkUrl:
+          type: ["string", "null"]
+        hashtags:
+          type: array
+          items:
+            type: string
+        reactions:
+          $ref: "#/components/schemas/ReactionCounts"
+        myReaction:
+          type: ["string", "null"]
+        commentCount:
+          type: integer
+        isPinned:
+          type: boolean
+        isHidden:
+          type: boolean
+        createdAt:
+          type: string
+
+    PostInput:
+      type: object
+      required: [type, content]
+      properties:
+        type:
+          type: string
+          enum: [announcement, resource, discussion, introduction, poll]
+        content:
+          type: string
+        linkUrl:
+          type: string
+        hashtags:
+          type: array
+          items:
+            type: string
+
+    PostUpdate:
+      type: object
+      properties:
+        content:
+          type: string
+        linkUrl:
+          type: string
+        hashtags:
+          type: array
+          items:
+            type: string
+        isPinned:
+          type: boolean
+        isHidden:
+          type: boolean
+
+    ReactionCounts:
+      type: object
+      properties:
+        like:
+          type: integer
+        fire:
+          type: integer
+        heart:
+          type: integer
+        insightful:
+          type: integer
+
+    ReactionInput:
+      type: object
+      required: [emoji]
+      properties:
+        emoji:
+          type: string
+          enum: [like, fire, heart, insightful]
+
+    # ── Comments ────────────────────────────────────────────────────────────
+
+    Comment:
+      type: object
+      required: [id, postId, authorId, authorName, content, createdAt]
+      properties:
+        id:
+          type: integer
+        postId:
+          type: integer
+        authorId:
+          type: integer
+        authorName:
+          type: string
+        authorPhoto:
+          type: ["string", "null"]
+        content:
+          type: string
+        parentCommentId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+
+    CommentInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+        parentCommentId:
+          type: integer
+
+    # ── Events ──────────────────────────────────────────────────────────────
+
+    Event:
+      type: object
+      required: [id, title, description, eventType, startAt, endAt, location, status, rsvpCounts, myRsvp, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        eventType:
+          type: string
+          enum: [workshop, social, guestTalk, fieldTrip, other]
+        startAt:
+          type: string
+        endAt:
+          type: string
+        timezone:
+          type: string
+        location:
+          type: string
+        meetingUrl:
+          type: ["string", "null"]
+        coverImageUrl:
+          type: ["string", "null"]
+        capacity:
+          type: ["integer", "null"]
+        rsvpDeadline:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [draft, published, cancelled, past]
+        rsvpCounts:
+          $ref: "#/components/schemas/RsvpCounts"
+        myRsvp:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    EventInput:
+      type: object
+      required: [title, description, eventType, startAt, endAt, location]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        eventType:
+          type: string
+          enum: [workshop, social, guestTalk, fieldTrip, other]
+        startAt:
+          type: string
+        endAt:
+          type: string
+        timezone:
+          type: string
+        location:
+          type: string
+        meetingUrl:
+          type: string
+        coverImageUrl:
+          type: string
+        capacity:
+          type: integer
+        rsvpDeadline:
+          type: string
+        status:
+          type: string
+          enum: [draft, published, cancelled, past]
+
+    EventUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        eventType:
+          type: string
+        startAt:
+          type: string
+        endAt:
+          type: string
+        timezone:
+          type: string
+        location:
+          type: string
+        meetingUrl:
+          type: string
+        coverImageUrl:
+          type: string
+        capacity:
+          type: integer
+        rsvpDeadline:
+          type: string
+        status:
+          type: string
+          enum: [draft, published, cancelled, past]
+
+    RsvpCounts:
+      type: object
+      properties:
+        going:
+          type: integer
+        notGoing:
+          type: integer
+        maybe:
+          type: integer
+
+    RsvpInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [going, notGoing, maybe]
+
+    Rsvp:
+      type: object
+      required: [userId, studentName, status]
+      properties:
+        userId:
+          type: integer
+        studentName:
+          type: string
+        studentCollege:
+          type: ["string", "null"]
+        photoUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+
+    # ── Dashboard ────────────────────────────────────────────────────────────
+
+    DashboardSummary:
+      type: object
+      required: [totalStudents, totalPosts, totalEvents, upcomingEventsCount, collegeBreakdown, topTags]
+      properties:
+        totalStudents:
+          type: integer
+        totalPosts:
+          type: integer
+        totalEvents:
+          type: integer
+        upcomingEventsCount:
+          type: integer
+        collegeBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/CollegeCount"
+        topTags:
+          type: array
+          items:
+            $ref: "#/components/schemas/TagCount"
+
+    CollegeCount:
+      type: object
+      required: [college, count]
+      properties:
+        college:
+          type: string
+        count:
+          type: integer
+
+    TagCount:
+      type: object
+      required: [tag, count]
+      properties:
+        tag:
+          type: string
+        count:
+          type: integer
+
+    ActivityItem:
+      type: object
+      required: [id, type, title, actorName, createdAt]
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [post, event, comment]
+        title:
+          type: string
+        actorName:
+          type: string
+        actorPhoto:
+          type: ["string", "null"]
+        entityId:
+          type: integer
+        createdAt:
+          type: string
+
+    # ── Admin ────────────────────────────────────────────────────────────────
+
+    AdminStudent:
+      type: object
+      required: [id, email, role, isActive, onboardingComplete, joinedAt]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        role:
+          type: string
+        isActive:
+          type: boolean
+        onboardingComplete:
+          type: boolean
+        profileName:
+          type: ["string", "null"]
+        college:
+          type: ["string", "null"]
+        joinedAt:
+          type: string
+
+    InviteCode:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
